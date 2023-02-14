@@ -7,9 +7,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 import warnings
+
 warnings.simplefilter("ignore", UserWarning)
-# time between speedtests
-SLEEP_TIME = 60
+# time between speedtests (in seconds)
+SLEEP_TIME = 60 * 15
 
 servers = []
 # If you want to test against a specific server
@@ -17,7 +18,7 @@ servers = []
 
 threads = None
 results_dicts_list = []
-is_speedtest_run = True
+is_speedtest_run = False
 
 
 # If you want to use a single threaded test
@@ -89,7 +90,7 @@ def update_table(speeds_list):
         export_to_csv(tuple_results)
 
 
-def new_speedtest(speeds_list, chart_label):
+def new_speedtest(speeds_list, chart_label, download, upload, ping):
     global results_dicts_list
 
     s = speedtest.Speedtest()
@@ -114,12 +115,13 @@ def new_speedtest(speeds_list, chart_label):
     print(results_dict)
     results_dicts_list.append(results_dict)
 
+    update_vars(download, upload, ping)
     update_table(speeds_list)
     show_chart(chart_label)
 
 
-def test_to_vars(speeds_list, chart_label):
-    t = Thread(target=lambda: new_speedtest(speeds_list, chart_label))
+def test_to_vars(speeds_list, chart_label, download, upload, ping):
+    t = Thread(target=lambda: new_speedtest(speeds_list, chart_label, download, upload, ping))
     t.start()
 
 
@@ -136,12 +138,20 @@ def update_vars(download, upload, ping):
     ping.set(f"ping: {ping_res} ms")
 
 
-def speedtests_loop(speeds_list, chart_label):
+def speedtests_loop(speeds_list, chart_label, download, upload, ping):
     print("speedtest started")
     while is_speedtest_run:
-        test_to_vars(speeds_list, chart_label)
+        test_to_vars(speeds_list, chart_label, download, upload, ping)
         time.sleep(SLEEP_TIME)
     print("speedtest really stopped")
+
+
+def start_speedtests_loop(speeds_list, chart_label, download, upload, ping):
+    global is_speedtest_run
+
+    is_speedtest_run = True
+    speedtests = Thread(target=lambda: speedtests_loop(speeds_list, chart_label, download, upload, ping))
+    speedtests.start()
 
 
 def stop_speedtests_loop():
@@ -160,12 +170,17 @@ def main():
     win.tk.call("set_theme", "dark")
 
     win.title("Speedtest Tracking")
+    win.resizable(width=False, height=False)
     download_var = tk.StringVar(value="Download: ")
     upload_var = tk.StringVar(value="Upload: ")
     ping_var = tk.StringVar(value="Ping: ")
 
-    results_vars_label = tk.Label(text="Download: \nUpload: \nPing: ")
-    results_vars_label.grid(row=0, column=0, rowspan=2, padx=10, pady=10)
+    current_download_label = ttk.Label(textvariable=download_var)
+    current_download_label.grid(row=0, column=0, padx=10, pady=(20, 10))
+    current_upload_label = ttk.Label(textvariable=upload_var)
+    current_upload_label.grid(row=1, column=0, padx=10, pady=10)
+    current_ping_label = ttk.Label(textvariable=ping_var)
+    current_ping_label.grid(row=2, column=0, padx=10, pady=10)
 
     columns = ("download", "upload", "ping")
     speeds_list = ttk.Treeview(win, columns=columns)
@@ -176,7 +191,7 @@ def main():
     speeds_list.column("upload", width=60)
     speeds_list.heading("ping", text="ping")
     speeds_list.column("ping", width=40)
-    speeds_list.grid(row=2, column=0, rowspan=2, padx=10, pady=10)
+    speeds_list.grid(row=3, column=0, rowspan=2, padx=10, pady=10)
 
     # create the started chart var
     start_chart = ImageTk.PhotoImage(Image.open("./images/speedtest_clear_chart.png"))
@@ -187,15 +202,14 @@ def main():
     chart_label = ttk.Label(win, image=start_chart)
     # keep reference to the chart, so it doesn't get prematurely garbage collected at the end of the function
     chart_label.image = start_chart
-    chart_label.grid(row=0, column=1, rowspan=3, columnspan=2, padx=10, pady=10)
+    chart_label.grid(row=0, column=1, rowspan=4, columnspan=2, padx=10, pady=10)
 
-    stop_test_button = ttk.Button(win, text="Stop tests", command=stop_speedtests_loop)
-    stop_test_button.grid(row=3, column=1, padx=10, pady=(0, 10), sticky="news")
-    show_chart_button = ttk.Button(win, text="Show chart", command=lambda: show_chart(chart_label))
-    show_chart_button.grid(row=3, column=2, padx=10, pady=(0, 10), sticky="news")
-
-    speedtests = Thread(target=lambda: speedtests_loop(speeds_list, chart_label))
-    speedtests.start()
+    start_test_button = ttk.Button(win, text="Start",
+                                   command=lambda: start_speedtests_loop(speeds_list, chart_label, download_var,
+                                                                         upload_var, ping_var))
+    start_test_button.grid(row=4, column=1, padx=10, pady=(0, 10), sticky="news")
+    stop_test_button = ttk.Button(win, text="Stop", command=stop_speedtests_loop)
+    stop_test_button.grid(row=4, column=2, padx=10, pady=(0, 10), sticky="news")
 
     win.mainloop()
 

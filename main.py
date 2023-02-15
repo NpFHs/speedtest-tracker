@@ -42,7 +42,7 @@ def show_chart(image_label: tk.Label):
 
         # save the chart
         plt.savefig("speedtest_chart.png")
-
+        plt.close()
         # update the chart
         chart = ImageTk.PhotoImage(Image.open("speedtest_chart.png"))
         image_label.configure(image=chart)
@@ -120,9 +120,8 @@ def new_speedtest(speeds_list, chart_label, download, upload, ping):
     show_chart(chart_label)
 
 
-def test_to_vars(speeds_list, chart_label, download, upload, ping):
-    t = Thread(target=lambda: new_speedtest(speeds_list, chart_label, download, upload, ping))
-    t.start()
+def test_to_vars_in_new_thread(speeds_list, chart_label, download, upload, ping):
+    new_speedtest(speeds_list, chart_label, download, upload, ping)
 
 
 def update_vars(download, upload, ping):
@@ -141,7 +140,7 @@ def update_vars(download, upload, ping):
 def speedtests_loop(speeds_list, chart_label, download, upload, ping):
     print("speedtest started")
     while is_speedtest_run:
-        test_to_vars(speeds_list, chart_label, download, upload, ping)
+        new_speedtest(speeds_list, chart_label, download, upload, ping)
         time.sleep(SLEEP_TIME)
     print("speedtest really stopped")
 

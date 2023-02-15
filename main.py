@@ -10,7 +10,7 @@ import warnings
 
 warnings.simplefilter("ignore", UserWarning)
 # time between speedtests (in seconds)
-SLEEP_TIME = 60 * 15
+SLEEP_TIME = 60
 
 servers = []
 # If you want to test against a specific server
@@ -93,16 +93,16 @@ def update_table(speeds_list):
 def new_speedtest(speeds_list, chart_label, download, upload, ping):
     global results_dicts_list
 
-    s = speedtest.Speedtest()
-    s.get_servers(servers)
     try:
+        s = speedtest.Speedtest()
+        s.get_servers(servers)
         s.get_best_server()
         s.download(threads=threads)
         s.upload(threads=threads)
         s.results.share()
 
         results_dict = s.results.dict()
-    except speedtest.SpeedtestBestServerFailure:
+    except (speedtest.SpeedtestBestServerFailure, speedtest.ConfigRetrievalError):
         # results when unable to connect
         results_dict = {'download': 0, 'upload': 0, 'ping': 0,
                         'server': {'url': 'Unknown', 'lat': 'Unknown', 'lon': 'Unknown', 'name': 'Unknown',
@@ -160,6 +160,20 @@ def stop_speedtests_loop():
     is_speedtest_run = False
 
 
+def set_sleep_time(sleep_time_var, sleep_time_type):
+    global SLEEP_TIME
+
+    time_type = sleep_time_type.get()
+    sleep_time = sleep_time_var.get()
+    if time_type == 1:
+        SLEEP_TIME = sleep_time
+    elif time_type == 2:
+        SLEEP_TIME = sleep_time * 60
+    elif time_type == 3:
+        SLEEP_TIME = sleep_time * 60 * 60
+    print(f"sleep_time: {SLEEP_TIME}")
+
+
 def main():
     clear_csv_file()
 
@@ -174,13 +188,37 @@ def main():
     download_var = tk.StringVar(value="Download: ")
     upload_var = tk.StringVar(value="Upload: ")
     ping_var = tk.StringVar(value="Ping: ")
+    sleep_time_var = tk.IntVar(value=1)
+    time_type_var = tk.IntVar(value=1)
 
-    current_download_label = ttk.Label(textvariable=download_var)
-    current_download_label.grid(row=0, column=0, padx=10, pady=(20, 10))
-    current_upload_label = ttk.Label(textvariable=upload_var)
+    current_results_frame = ttk.LabelFrame(win, text="Current results", padding=(20, 10))
+    current_results_frame.grid(row=0, column=0, rowspan=3, sticky="news", padx=10, pady=10)
+
+    current_download_label = ttk.Label(current_results_frame, textvariable=download_var)
+    current_download_label.grid(row=0, column=0, padx=10, pady=10)
+    current_upload_label = ttk.Label(current_results_frame, textvariable=upload_var)
     current_upload_label.grid(row=1, column=0, padx=10, pady=10)
-    current_ping_label = ttk.Label(textvariable=ping_var)
+    current_ping_label = ttk.Label(current_results_frame, textvariable=ping_var)
     current_ping_label.grid(row=2, column=0, padx=10, pady=10)
+
+    settings_frame = ttk.LabelFrame(win, text="settings", padding=(20, 10))
+    settings_frame.grid(row=0, column=1, columnspan=2, sticky="news", padx=10, pady=(10, 0))
+
+    settings_label = ttk.Label(settings_frame, text="Run speedtest once in:")
+    settings_label.grid(row=0, column=0)
+
+    time_spinbox = ttk.Spinbox(settings_frame, from_=1, to=60, increment=1, textvariable=sleep_time_var, width=5)
+    time_spinbox.grid(row=0, column=1, padx=10, pady=10, sticky="news")
+
+    seconds_radio = ttk.Radiobutton(settings_frame, text="seconds", variable=time_type_var, value=1)
+    seconds_radio.grid(row=0, column=2, padx=10, pady=10, sticky="news")
+    minutes_radio = ttk.Radiobutton(settings_frame, text="minutes", variable=time_type_var, value=2)
+    minutes_radio.grid(row=0, column=3, padx=10, pady=10, sticky="news")
+    hours_radio = ttk.Radiobutton(settings_frame, text="hours", variable=time_type_var, value=3)
+    hours_radio.grid(row=0, column=4, padx=10, pady=10, sticky="news")
+
+    set_button = ttk.Button(settings_frame, text="Set", command=lambda: set_sleep_time(sleep_time_var, time_type_var))
+    set_button.grid(row=0, column=5, padx=10, pady=10)
 
     columns = ("download", "upload", "ping")
     speeds_list = ttk.Treeview(win, columns=columns)
@@ -202,7 +240,7 @@ def main():
     chart_label = ttk.Label(win, image=start_chart)
     # keep reference to the chart, so it doesn't get prematurely garbage collected at the end of the function
     chart_label.image = start_chart
-    chart_label.grid(row=0, column=1, rowspan=4, columnspan=2, padx=10, pady=10)
+    chart_label.grid(row=1, column=1, rowspan=3, columnspan=2, padx=10, pady=10)
 
     start_test_button = ttk.Button(win, text="Start",
                                    command=lambda: start_speedtests_loop(speeds_list, chart_label, download_var,

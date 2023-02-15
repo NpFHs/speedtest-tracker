@@ -8,9 +8,10 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 import warnings
 
+# to avoid UserWarning: Starting a Matplotlib GUI outside the main thread will likely fail.
 warnings.simplefilter("ignore", UserWarning)
-# time between speedtests (in seconds)
-SLEEP_TIME = 60
+# default time between speedtests (in seconds)
+SLEEP_TIME = 60 * 10
 
 servers = []
 # If you want to test against a specific server
@@ -41,10 +42,10 @@ def show_chart(image_label: tk.Label):
         df.plot()
 
         # save the chart
-        plt.savefig("speedtest_chart.png")
+        plt.savefig("./images/speedtest_chart.png")
         plt.close()
         # update the chart
-        chart = ImageTk.PhotoImage(Image.open("speedtest_chart.png"))
+        chart = ImageTk.PhotoImage(Image.open("./images/speedtest_chart.png"))
         image_label.configure(image=chart)
         # keep reference to the chart, so it doesn't get prematurely garbage collected at the end of the function
         image_label.image = chart
@@ -112,7 +113,7 @@ def new_speedtest(speeds_list, chart_label, download, upload, ping):
                         'client': {'ip': 'Unknown', 'lat': 'Unknown', 'lon': 'Unknown', 'isp': 'Unknown',
                                    'isprating': '0', 'rating': '0', 'ispdlavg': '0', 'ispulavg': '0', 'loggedin': '0',
                                    'country': 'Unknown'}}
-    print(results_dict)
+
     results_dicts_list.append(results_dict)
 
     update_vars(download, upload, ping)
@@ -187,8 +188,8 @@ def main():
     download_var = tk.StringVar(value="Download: ")
     upload_var = tk.StringVar(value="Upload: ")
     ping_var = tk.StringVar(value="Ping: ")
-    sleep_time_var = tk.IntVar(value=1)
-    time_type_var = tk.IntVar(value=1)
+    sleep_time_var = tk.IntVar(value=10)
+    time_type_var = tk.IntVar(value=2)
 
     current_results_frame = ttk.LabelFrame(win, text="Current results", padding=(20, 10))
     current_results_frame.grid(row=0, column=0, rowspan=3, sticky="news", padx=10, pady=10)

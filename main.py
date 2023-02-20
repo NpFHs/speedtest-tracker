@@ -8,14 +8,12 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 import warnings
 
-# to avoid UserWarning: Starting a Matplotlib GUI outside the main thread will likely fail.
+# to avoid UserWarning (Starting a Matplotlib GUI outside the main thread will likely fail).
 warnings.simplefilter("ignore", UserWarning)
-# default time between speedtests (in seconds)
+# default time between speedtests (in seconds - 1 minute * number of minutes)
 SLEEP_TIME = 60 * 10
 
 servers = []
-# If you want to test against a specific server
-# servers = [1234]
 
 threads = None
 results_dicts_list = []
